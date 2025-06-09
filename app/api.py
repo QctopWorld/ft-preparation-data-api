@@ -44,28 +44,7 @@ async def process_csv(
             cat_clean, buffer_radius,
             balance_strategy, balance_sort_col,
         )
-        """
-        # Export du CSV nettoyé dans le dossier temp
-        tmpdir = tempfile.gettempdir()
-        cleaned_name = f"{os.path.splitext(file.filename or 'upload')[0]}_cleaned.csv"
-        cleaned_path_short = os.path.join(tmpdir, cleaned_name)
-        result["cleaned_df"].to_csv(cleaned_path_short, index=False)
 
-        # Remplacer par le long path Windows (accentué)
-        try:
-            cleaned_path_long = get_long_path_name(os.path.abspath(cleaned_path_short))
-        except Exception:
-            cleaned_path_long = os.path.abspath(cleaned_path_short)
-
-        result["cleaned_path"] = cleaned_path_long
-        del result["cleaned_df"]
-
-        # Sérialisation JSON avec gestion des types spéciaux
-        return JSONResponse(
-            content=json.loads(json.dumps(result, default=json_serial, ensure_ascii=False)),
-            media_type="application/json"
-        )
-        """
         # 1) Générer le CSV nettoyé DANS UN BUFFER MÉMOIRE
         buffer = io.StringIO()
         result["cleaned_df"].to_csv(buffer, index=False)
@@ -111,15 +90,7 @@ async def split_csv(
     date_format: Optional[str]  = Form(None),          # format pour parser cutoff ou date_col
     group_col: Optional[str]    = Form(None),          # pour group-aware
 ):
-    """
-    Expose les quatre splits :
-      - random
-      - strat_uni    (label_col)
-      - strat_multi  (strat_cols : "c1,c2,c3")
-      - temporal     (date_col + soit cutoff, soit test_frac)
-      - group        (group_col)
-    Renvoie deux CSV (train + test) encodés en base64.
-    """
+
     try:
         print("/split est appelé")
         raw = await file.read()
