@@ -55,7 +55,7 @@ python -m venv venv           # crée un environnement virtuel
 # Windows (avec le venv activé)
 python -m venv venv
 venv\Scripts\activate.bat
-pip install -r requirements.txt
+pip install -r requirements.txt  -v
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\venv\Scripts\Activate.ps1
 uvicorn app.api:app --reload --port 9000
