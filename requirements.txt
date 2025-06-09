@@ -4,3 +4,5 @@ pandas
 numpy
 python-multipart      # pour UploadFile
 pyyaml                # (facultatif) lecture YAML
+orjson
+scikit-learn
