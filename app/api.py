@@ -121,6 +121,7 @@ async def split_csv(
     Renvoie deux CSV (train + test) encodés en base64.
     """
     try:
+        print("/split est appelé")
         raw = await file.read()
         df  = pd.read_csv(io.BytesIO(raw))
 
@@ -175,9 +176,9 @@ async def split_csv(
 
         response_content = {
             "train_csv_base64": df_to_b64(train_df),
-            "test_csv_base64":  df_to_b64(test_df),
+            "validation_csv_base64":  df_to_b64(test_df),
             "train_rows":       len(train_df),
-            "test_rows":        len(test_df),
+            "validation_rows":        len(test_df),
         }
 
         return JSONResponse(
