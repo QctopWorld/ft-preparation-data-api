@@ -15,6 +15,8 @@ from .splits import (
     group_aware_split
 )
 
+from .jsonl import dataframe_to_jsonl
+
 app = FastAPI(title="Fine-Tuning CSV API", version="1.0")
 
 @app.post("/process")
@@ -81,7 +83,7 @@ async def process_csv(
 async def split_csv(
     file: UploadFile,
     strategy: str               = Form(...),           # "random", "strat_uni", "strat_multi", "temporal", "group"
-    test_frac: Optional[float]  = Form(0.2),           # fraction pour les splits qui le demandent
+    validation_frac: Optional[float]  = Form(0.2),           # fraction pour les splits qui le demandent
     random_state: Optional[int] = Form(42),            # seed pour l’aléatoire
     label_col: Optional[str]    = Form(None),          # pour strat_uni
     strat_cols: Optional[str]   = Form(None),          # pour strat_multi, passé en CSV ("col1,col2,col3")
@@ -99,14 +101,14 @@ async def split_csv(
         # Choix de la stratégie
         strat = strategy.strip().lower()
         if strat == "random":
-            train_df, test_df = random_split(df, test_frac=test_frac, random_state=random_state)
+            train_df, test_df = random_split(df, validation_frac=validation_frac, random_state=random_state)
 
         elif strat == "strat_uni":
             if not label_col:
                 raise HTTPException(status_code=400, detail="label_col requis pour strat_uni")
             train_df, test_df = stratified_split_univariate(
                 df, label_col=label_col,
-                test_frac=test_frac, random_state=random_state
+                validation_frac=validation_frac, random_state=random_state
             )
 
         elif strat == "strat_multi":
@@ -115,16 +117,16 @@ async def split_csv(
             cols_list = [c.strip() for c in strat_cols.split(",") if c.strip()]
             train_df, test_df = stratified_split_multivariate(
                 df, strat_cols=cols_list,
-                test_frac=test_frac, random_state=random_state
+                validation_frac=validation_frac, random_state=random_state
             )
 
         elif strat == "temporal":
             if not date_col:
                 raise HTTPException(status_code=400, detail="date_col requis pour temporal")
-            # Soit cutoff fourni, soit on se base sur test_frac
+            # Soit cutoff fourni, soit on se base sur validation_frac
             train_df, test_df = temporal_split(
                 df, date_col=date_col,
-                cutoff=cutoff, test_frac=test_frac,
+                cutoff=cutoff, validation_frac=validation_frac,
                 date_format=date_format
             )
 
@@ -133,7 +135,7 @@ async def split_csv(
                 raise HTTPException(status_code=400, detail="group_col requis pour group")
             train_df, test_df = group_aware_split(
                 df, group_col=group_col,
-                test_frac=test_frac, random_state=random_state
+                validation_frac=validation_frac, random_state=random_state
             )
 
         else:
@@ -165,3 +167,46 @@ async def split_csv(
             status_code=400,
             detail={"error": str(e), "trace": traceback.format_exc()},
         )
+    
+@app.post("/jsonl")
+async def jsonl_from_csv(
+    train_file: UploadFile,
+    val_file: UploadFile,
+    system_template: str = Form(...),
+    user_template: str = Form(...),
+    assistant_template: str = Form(...),
+):
+    try:
+        print("/jsonl est appelé")
+        # Lire les deux fichiers CSV
+        train_df = pd.read_csv(io.BytesIO(await train_file.read()))
+        val_df   = pd.read_csv(io.BytesIO(await val_file.read()))
+
+        # Générer les contenus JSONL
+        train_jsonl = dataframe_to_jsonl(train_df, system_template, user_template, assistant_template)
+        val_jsonl   = dataframe_to_jsonl(val_df, system_template, user_template, assistant_template)
+
+        # Encodage base64 (ou tu peux retourner en plain/text)
+        def encode_b64(text: str) -> str:
+            return base64.b64encode(text.encode("utf-8")).decode("ascii")
+
+        response = {
+            "train_jsonl_base64": encode_b64(train_jsonl),
+            "validation_jsonl_base64": encode_b64(val_jsonl),
+            "train_lines": len(train_df),
+            "validation_lines": len(val_df),
+        }
+        return JSONResponse(content=response)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": str(e), "trace": traceback.format_exc()},
+        )
+
+@app.get("/hello")
+async def hello():
+    """
+    Endpoint de test pour vérifier que l'API fonctionne.
+    """
+    return {"message": "Hello, world! L'API fonctionne."}
