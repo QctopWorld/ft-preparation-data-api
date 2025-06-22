@@ -5,6 +5,7 @@ from typing import List, Optional
 import io, traceback, datetime, json
 import pandas as pd
 import base64
+import asyncio
 
 from .core import process_dataframe, json_serial
 from .splits import (
@@ -16,6 +17,8 @@ from .splits import (
 )
 
 from .jsonl import dataframe_to_jsonl
+
+from .reports import generate_report
 
 app = FastAPI(title="Fine-Tuning CSV API", version="1.0")
 
@@ -203,6 +206,42 @@ async def jsonl_from_csv(
             status_code=400,
             detail={"error": str(e), "trace": traceback.format_exc()},
         )
+
+
+@app.post("/report")
+async def report_endpoint(
+    job_id:        str = Form(...),
+    model_id:      str = Form(...),
+    train_file_id: str = Form(...),
+    val_file_id:   str = Form(...),
+    n_threads:     int = Form(20),
+):
+    """
+    Retourne {"zip_base64": "..."} contenant le rapport .zip
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        # Exécute la fonction CPU-bound dans un thread
+        zip_bytes = await loop.run_in_executor(
+            None,
+            generate_report,
+            {
+                "job_id": job_id,
+                "model_id": model_id,
+                "train_file_id": train_file_id,
+                "val_file_id": val_file_id,
+                "n_threads": n_threads,
+            }
+        )
+        zip_b64 = base64.b64encode(zip_bytes).decode("ascii")
+        return {"zip_base64": zip_b64}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": str(e), "trace": traceback.format_exc()},
+        )
+
 
 @app.get("/hello")
 async def hello():

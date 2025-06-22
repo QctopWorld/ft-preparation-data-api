@@ -4,5 +4,5 @@ source "$(dirname "$0")/venv/bin/activate"  # commenté pour éviter les erreurs
 # puis lance Uvicorn
 exec uvicorn app:app \
      --host 127.0.0.1 \
-     --port 9000 \
+     --port 9090 \
      --reload

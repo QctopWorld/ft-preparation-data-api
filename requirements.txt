@@ -6,3 +6,5 @@ python-multipart      # pour UploadFile
 pyyaml                # (facultatif) lecture YAML
 orjson
 scikit-learn
+openai
+matplotlib
