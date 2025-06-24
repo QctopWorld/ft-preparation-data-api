@@ -58,6 +58,11 @@ venv\Scripts\activate.bat
 pip install -r requirements.txt  -v
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\venv\Scripts\Activate.ps1
+
+#Linux
+source venv/bin/activate
+
+#Lancer le serveur
 uvicorn app.api:app --reload --port 9090
 
 # macOS / Linux (venv activé également)

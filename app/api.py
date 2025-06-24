@@ -1,11 +1,19 @@
 # api.py – Service FastAPI qui enveloppe la logique de core.py
-from fastapi import FastAPI, UploadFile, Form, HTTPException
+from pathlib import Path
+import tempfile
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import List, Optional
-import io, traceback, datetime, json
+import io, os , traceback, datetime, json
+import openai
 import pandas as pd
 import base64
 import asyncio
+import functools
+from dotenv import load_dotenv
+
+from app.reports_function import download_openai_file
+from app.settings import Settings
 
 from .core import process_dataframe, json_serial
 from .splits import (
@@ -18,8 +26,10 @@ from .splits import (
 
 from .jsonl import dataframe_to_jsonl
 
-from .reports import generate_report
+from .reports import run_full_pipeline
 
+
+load_dotenv()  
 app = FastAPI(title="Fine-Tuning CSV API", version="1.0")
 
 @app.post("/process")
@@ -207,41 +217,43 @@ async def jsonl_from_csv(
             detail={"error": str(e), "trace": traceback.format_exc()},
         )
 
-
-@app.post("/report")
-async def report_endpoint(
+settings =  Settings()  
+openai.api_key = settings.openai_api_key
+@app.post("/reports", summary="Ancienne route : reçoit les IDs OpenAI")
+async def reports_by_ids(
     job_id:        str = Form(...),
     model_id:      str = Form(...),
     train_file_id: str = Form(...),
     val_file_id:   str = Form(...),
     n_threads:     int = Form(20),
 ):
-    """
-    Retourne {"zip_base64": "..."} contenant le rapport .zip
-    """
-    try:
-        loop = asyncio.get_running_loop()
-        # Exécute la fonction CPU-bound dans un thread
-        zip_bytes = await loop.run_in_executor(
-            None,
-            generate_report,
-            {
-                "job_id": job_id,
-                "model_id": model_id,
-                "train_file_id": train_file_id,
-                "val_file_id": val_file_id,
-                "n_threads": n_threads,
-            }
-        )
-        zip_b64 = base64.b64encode(zip_bytes).decode("ascii")
-        return {"zip_base64": zip_b64}
+    print("/reports est appelé avec des IDs OpenAI")
+    # 1. Télécharger les fichiers depuis OpenAI
+    train_bytes = download_openai_file(train_file_id, settings.openai_api_key)
+    val_bytes   = download_openai_file(val_file_id,   settings.openai_api_key)
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail={"error": str(e), "trace": traceback.format_exc()},
-        )
+    # 2. Travailler dans un dossier temporaire
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        train_path = td_path / "train.jsonl"
+        val_path   = td_path / "val.jsonl"
+        train_path.write_bytes(train_bytes)
+        val_path.write_bytes(val_bytes)
 
+        # run_full_pipeline retourne maintenant un fichier TXT
+        txt_path = run_full_pipeline(
+            train_path, val_path,
+            job_id, model_id,train_file_id, val_file_id,
+            n_threads,
+            settings.weight_up, settings.weight_down
+        )
+        print("Rapport généré :", txt_path)
+
+        # Lire le fichier TXT et l'encoder en base64
+        txt_content = txt_path.read_text(encoding='utf-8')
+        txt_b64 = base64.b64encode(txt_content.encode('utf-8')).decode('ascii')
+
+        return {"report_txt": txt_b64}
 
 @app.get("/hello")
 async def hello():

@@ -1,10 +1,14 @@
-fastapi
-uvicorn[standard]
-pandas
-numpy
-python-multipart      # pour UploadFile
-pyyaml                # (facultatif) lecture YAML
-orjson
-scikit-learn
-openai
-matplotlib
+fastapi                 # FastAPI framework
+uvicorn[standard]       # ASGI server for FastAPI
+pydantic                # Data validation and settings management
+pandas                  # Data manipulation and analysis
+numpy                   # Numerical computing
+python-multipart        # pour UploadFile
+pyyaml                  # (facultatif) lecture YAML
+orjson                  # JSON parsing
+scikit-learn            # Machine learning
+openai                  # API client pour OpenAI
+matplotlib              # Visualisation
+reportlab               # Génération de PDF
+tqdm                    # Progress bar
+python-multipart        # pour UploadFile
