@@ -180,7 +180,7 @@ async def split_csv(
             status_code=400,
             detail={"error": str(e), "trace": traceback.format_exc()},
         )
-    
+
 @app.post("/jsonl")
 async def jsonl_from_csv(
     train_file: UploadFile,
@@ -219,38 +219,55 @@ async def jsonl_from_csv(
 
 settings =  Settings()  
 openai.api_key = settings.openai_api_key
-@app.post("/reports", summary="Ancienne route : reçoit les IDs OpenAI")
+@app.post("/reports", summary="Reçoit les IDs OpenAI ou les fichiers directement")
 async def reports_by_ids(
     job_id:        str = Form(...),
     model_id:      str = Form(...),
     train_file_id: str = Form(...),
     val_file_id:   str = Form(...),
     n_threads:     int = Form(20),
+    train_file:    UploadFile = None,
+    val_file:      UploadFile = None,
 ):
-    print("/reports est appelé avec des IDs OpenAI")
-    # 1. Télécharger les fichiers depuis OpenAI
-    train_bytes = download_openai_file(train_file_id, settings.openai_api_key)
-    val_bytes   = download_openai_file(val_file_id,   settings.openai_api_key)
+    print("/reports est appelé")
 
     # 2. Travailler dans un dossier temporaire
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
         train_path = td_path / "train.jsonl"
         val_path   = td_path / "val.jsonl"
+
+        # Si les fichiers sont fournis directement, les utiliser
+        if train_file and val_file:
+            print("Utilisation des fichiers envoyés directement")
+            train_bytes = await train_file.read()
+            val_bytes = await val_file.read()
+        # Sinon, télécharger les fichiers depuis OpenAI avec les IDs
+        else:
+            print("Téléchargement des fichiers depuis OpenAI avec les IDs")
+            train_bytes = download_openai_file(train_file_id, settings.openai_api_key)
+            val_bytes = download_openai_file(val_file_id, settings.openai_api_key)
+
         train_path.write_bytes(train_bytes)
         val_path.write_bytes(val_bytes)
 
-        # run_full_pipeline retourne maintenant un fichier TXT
-        txt_path = run_full_pipeline(
+        # Appeler run_full_pipeline avec les bons paramètres
+        pdf_path = run_full_pipeline(
             train_path, val_path,
-            job_id, model_id,train_file_id, val_file_id,
+            job_id, model_id,
             n_threads,
             settings.weight_up, settings.weight_down
         )
-        print("Rapport généré :", txt_path)
+        print("Rapport généré :", pdf_path)
 
         # Lire le fichier TXT et l'encoder en base64
-        txt_content = txt_path.read_text(encoding='utf-8')
+        txt_path = pdf_path.with_suffix('.txt')
+        if txt_path.exists():
+            txt_content = txt_path.read_text(encoding='utf-8')
+        else:
+            # Fallback: utiliser le PDF
+            txt_content = f"Rapport disponible en PDF: {pdf_path.name}"
+
         txt_b64 = base64.b64encode(txt_content.encode('utf-8')).decode('ascii')
 
         return {"report_txt": txt_b64}
