@@ -254,7 +254,7 @@ async def reports_by_ids(
         # Appeler run_full_pipeline avec les bons paramètres
         pdf_path = run_full_pipeline(
             train_path, val_path,
-            job_id, model_id,
+            job_id, model_id, train_file_id, val_file_id,
             n_threads,
             settings.weight_up, settings.weight_down
         )

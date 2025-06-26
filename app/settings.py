@@ -4,7 +4,7 @@ from typing import ClassVar, List
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    openai_api_key: ClassVar[str] = "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"
+    openai_api_key: ClassVar[str] = "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"
     prefixes_to_remove: ClassVar[List[str]] = [
         "ft:gpt-4.1-mini-2025-04-14:quebectop-inc:",
         "ft:gpt-4o-mini-2024-07-18:quebectop-inc:",

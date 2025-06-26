@@ -14,7 +14,7 @@ styles = getSampleStyleSheet()
 from .reports_function import * 
 
 
-OPENAI_API_KEY = "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"  # last resort
+OPENAI_API_KEY = "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"  # last resort
 
 
 # ------------------------------------------------------------------ #
