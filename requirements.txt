@@ -13,3 +13,4 @@ reportlab               # Génération de PDF
 tqdm                    # Progress bar
 python-multipart        # pour UploadFile
 requests               # HTTP requests
+pydantic_settings
