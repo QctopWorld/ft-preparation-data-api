@@ -1,9 +1,2 @@
 app/.env
-app/__pycache__/__init__.cpython-312.pyc
-app/__pycache__/api.cpython-312.pyc
-app/__pycache__/core.cpython-312.pyc
-app/__pycache__/jsonl.cpython-312.pyc
-app/__pycache__/reports_function.cpython-312.pyc
-app/__pycache__/reports.cpython-312.pyc
-app/__pycache__/settings.cpython-312.pyc
-app/__pycache__/splits.cpython-312.pyc
+
