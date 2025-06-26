@@ -10,6 +10,7 @@ from collections import Counter
 from pathlib import Path 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
+from typing import List, Tuple
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 📦 Librairies tierces
@@ -185,7 +186,7 @@ def charger_jeu_de_test(fichier):
             prompt_texts.append(next(m["content"] for m in msgs if m["role"] == "user"))
     return test_messages, y_true, prompt_texts
 
-def traiter_exemple(i, msgs, title, model_id: str, labels: list[str]):
+def traiter_exemple(i, msgs, title, model_id: str, labels: List[str]):
     try:
         resp = openai.chat.completions.create(
             model=model_id,
@@ -204,7 +205,7 @@ def traiter_exemple(i, msgs, title, model_id: str, labels: list[str]):
 def lancer_inference(test_messages, prompt_texts,
                      n_parallele: int,
                      model_id: str,
-                     labels: list[str]):
+                     labels: List[str]):
     
     y_pred = [None] * len(test_messages)
     bar = tqdm(total=len(test_messages), unit="req", desc="Lancement en parallèle")
@@ -370,7 +371,7 @@ def generer_rapport(
     job_id: str, model_id: str, train_file_id: str, val_file_id: str,
     weight_up: float, weight_down: float,
     output_txt: Path, output_csv: Path,
-    labels: list[str]         # ← plus simple de passer déjà détecté
+    labels: List[str]         # ← plus simple de passer déjà détecté
     
 ):
     labels = definition_label(input_val)

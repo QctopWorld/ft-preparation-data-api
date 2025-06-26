@@ -1,10 +1,15 @@
 # settings.py --------------------------------------------------------------
+import os
+from dotenv import load_dotenv
 from pydantic import  Field
 from typing import ClassVar, List
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    openai_api_key: ClassVar[str] = "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"
+    load_dotenv(override=True) # charge les variables d'environnement depuis le fichier .env
+
+    openai_api_key: ClassVar[str] = os.getenv("OPENAI_API_KEY")
+    
     prefixes_to_remove: ClassVar[List[str]] = [
         "ft:gpt-4.1-mini-2025-04-14:quebectop-inc:",
         "ft:gpt-4o-mini-2024-07-18:quebectop-inc:",
