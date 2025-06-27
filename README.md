@@ -59,6 +59,8 @@ pip install -r requirements.txt  -v
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\venv\Scripts\Activate.ps1
 
+# Mettre le fichier.env dans le même repertoire que le dossier env
+
 #Linux
 source venv/bin/activate
 

@@ -218,7 +218,6 @@ async def jsonl_from_csv(
         )
 
 settings =  Settings()  
-print(f"OPENAI_API_KEY: {settings.openai_api_key}")
 openai.api_key = settings.openai_api_key
 @app.post("/reports", summary="Reçoit les IDs OpenAI ou les fichiers directement")
 async def reports_by_ids(
