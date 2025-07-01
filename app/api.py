@@ -44,6 +44,10 @@ async def process_csv(
     buffer_radius: float = Form(0.0),
     balance_strategy: str = Form(""),
     balance_sort_col: str = Form(""),
+    cat_label0: str      = Form("g0"),
+    cat_label1: str      = Form("g1"),
+    cat_label2: str      = Form("g2"),
+    cat_label3: str      = Form("g3"),
 ):
     try:
         print("/process est appelé")
@@ -58,6 +62,7 @@ async def process_csv(
             cat_var, cat_bins,
             cat_clean, buffer_radius,
             balance_strategy, balance_sort_col,
+            cat_label0, cat_label1, cat_label2, cat_label3,
         )
 
         # 1) Générer le CSV nettoyé DANS UN BUFFER MÉMOIRE

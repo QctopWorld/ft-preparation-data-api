@@ -220,7 +220,9 @@ def suppression_doublons_legacy(df: pd.DataFrame) -> pd.DataFrame:
 #  Catégorisation numérique
 # ──────────────────────────────────────────
 
-def ajouter_categorie(df: pd.DataFrame, var: str, bins: List[float]) -> pd.DataFrame:
+def ajouter_categorie(df: pd.DataFrame, var: str, bins: List[float], 
+                cat_label0: str = "g0", cat_label1: str = "g1", 
+                cat_label2: str = "g2", cat_label3: str = "g3") -> pd.DataFrame:
     if var not in df.columns:
         raise KeyError(f"Colonne à catégoriser inconnue : {var}")
     if df[var].dtype == object:
@@ -233,7 +235,12 @@ def ajouter_categorie(df: pd.DataFrame, var: str, bins: List[float]) -> pd.DataF
     bins_sorted = sorted(set(float(b) for b in bins))
     if len(bins_sorted) < 2:
         raise ValueError("Au moins deux bornes nécessaires")
-    labels = [f"g{i}" for i in range(len(bins_sorted) - 1)]
+
+    # Utiliser les labels personnalisés au lieu des labels par défaut
+    custom_labels = [cat_label0, cat_label1, cat_label2, cat_label3]
+    # S'assurer que nous avons suffisamment de labels pour le nombre de bins
+    labels = custom_labels[:len(bins_sorted) - 1]
+
     df[f"{var}_cat"] = pd.cut(df[var], bins=bins_sorted, labels=labels, right=False)
     return df
 
@@ -305,6 +312,10 @@ def process_dataframe(
     buffer_radius: float = 0.0,
     balance_strategy: str = "",
     balance_sort_col: str = "",
+    cat_label0: str = "g0",
+    cat_label1: str = "g1",
+    cat_label2: str = "g2",
+    cat_label3: str = "g3",
 ) -> Dict[str, Any]:
     """
     Transforme *df* et renvoie {operations, cleaned_df, debug}.
@@ -388,7 +399,7 @@ def process_dataframe(
     if cat_var:
         bins_float = [float(b) for b in (cat_bins or "0,3,6,9,100").split(",") if b.strip()]
         avant = df.get(f"{cat_var}_cat", pd.Series(dtype="object")).notna().sum()
-        df = ajouter_categorie(df, cat_var, bins_float)
+        df = ajouter_categorie(df, cat_var, bins_float, cat_label0, cat_label1, cat_label2, cat_label3)
         apres = df[f"{cat_var}_cat"].notna().sum()
         counts = df[f"{cat_var}_cat"].value_counts().sort_index().to_dict()
         logs.append({
