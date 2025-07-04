@@ -68,14 +68,51 @@ def _col_kind(series: pd.Series) -> str:
         return "date"
     sample = series.dropna().astype(str).head(100)
     if len(sample):
-        parsed = pd.to_datetime(sample, errors="coerce")
-        if parsed.notna().mean() >= 0.8:
-            return "date"
+        # Try common date formats first to avoid the warning
+        common_formats = [
+            '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', 
+            '%Y-%m-%d %H:%M:%S', '%d/%m/%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S'
+        ]
+
+        for date_format in common_formats:
+            try:
+                parsed = pd.to_datetime(sample, format=date_format, errors="coerce")
+                if parsed.notna().mean() >= 0.8:
+                    return "date"
+            except:
+                continue
+
+        # If no common format works, try without specifying format as fallback
+        # This will still use dateutil but we've tried the common formats first
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            parsed = pd.to_datetime(sample, errors="coerce")
+            if parsed.notna().mean() >= 0.8:
+                return "date"
     return "string"
 
 def _ensure_datetime(df: pd.DataFrame, col: str):
     if not pd.api.types.is_datetime64_any_dtype(df[col]):
-        df[col] = pd.to_datetime(df[col], errors="coerce")
+        # Try common date formats first
+        common_formats = [
+            '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', 
+            '%Y-%m-%d %H:%M:%S', '%d/%m/%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S'
+        ]
+
+        # Try each format and use the first one that works well
+        for date_format in common_formats:
+            try:
+                temp = pd.to_datetime(df[col], format=date_format, errors="coerce")
+                if temp.notna().mean() >= 0.8:  # If at least 80% parsed successfully
+                    df[col] = temp
+                    return
+            except:
+                continue
+
+        # If no common format works well, fall back to default but suppress warning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            df[col] = pd.to_datetime(df[col], errors="coerce")
 
 # ──────────────────────────────────────────
 #  Harmonisation déclarative des doublons
@@ -354,6 +391,7 @@ def process_dataframe(
     })
     print(f"[TRACE] suppression NaN fait en {time.time() - start:.2f}s", file=sys.stderr)
 
+    start = time.time()
     # ── Gestion des doublons ─────────────────────────────
     rules = parse_rules(agg_inline=agg)
     before_dup = len(df)
@@ -378,6 +416,7 @@ def process_dataframe(
     })
     print(f"[TRACE] Gestion des doublons fait en {time.time() - start:.2f}s", file=sys.stderr)
 
+    start = time.time()
     # ── Boundary cleaning ───────────────────────────────
     if cat_clean:
         boundaries = [float(b) for b in cat_clean.split(",") if b.strip()]
@@ -404,6 +443,7 @@ def process_dataframe(
         })
         print(f"[TRACE] Boundary cleaning fait en {time.time() - start:.2f}s", file=sys.stderr)
 
+    start = time.time()
     # ── Catégorisation ──────────────────────────────────
     if cat_var:
         bins_float = [float(b) for b in (cat_bins or "0,3,6,9,100").split(",") if b.strip()]
@@ -424,6 +464,7 @@ def process_dataframe(
         })
         print(f"[TRACE] Catégorisation fait en {time.time() - start:.2f}s", file=sys.stderr)
 
+    start = time.time()
     # ── Uniformisation des groupes ──────────────────────
     if balance_strategy and cat_var:
         cat_col = f"{cat_var}_cat"
